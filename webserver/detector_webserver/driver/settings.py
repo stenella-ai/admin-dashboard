@@ -49,7 +49,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'gentelella.urls'
+ROOT_URLCONF = 'driver.urls'
 
 TEMPLATES = [
     {
@@ -67,7 +67,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'gentelella.wsgi.application'
+WSGI_APPLICATION = 'driver.wsgi.application'
 
 
 # Database
