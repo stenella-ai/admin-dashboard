@@ -16,6 +16,25 @@ TABLE_CREATE_COMMANDS = [
         manufacturing_line VARCHAR(255) NOT NULL,
         in_use BOOL NOT NULL
     )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS models (
+        pk_m_id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description VARCHAR(4000),
+        absolute_path VARCHAR(255) NOT NULL,
+        format VARCHAR(255) NOT NULL,
+        model_type VARCHAR(255),
+        config VARCHAR(4000)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS event_types (
+        pk_e_id SERIAL PRIMARY KEY,
+        pk_m_id SERIAL REFERENCES models(pk_m_id),
+        event_type VARCHAR(255) NOT NULL,
+        severity INTEGER
+    )
     """
 ]
 
@@ -55,11 +74,19 @@ def generate_hardware_stage(n_samples=20):
         'manufacturing_line': [np.random.choice(['line_1', 'line_2']) for _ in range(0, n_samples)],
         'in_use': [np.random.choice([True, False]) for _ in range(0, n_samples)]
     }
-    
     return metadata
 
-def generate_model_stage():
-    ...
+def generate_model_stage(n_samples=4):
+    metadata = {
+        'pk_m_id': np.arange(0, n_samples),
+        'name': [f'test_name_{index}' for index in range(0, n_samples)],
+        'description': [f'test_description_{index}' for index in range(0, n_samples)],
+        'absolute_path': [f'some/path/model_{index}.onnx' for index in range(0, n_samples)],
+        'format': ['onnx'] * n_samples,
+        'model_type': [np.random.choice(['yolov8', 'musc', 'ocr']) for _ in range(0, n_samples)],
+        'config': ['{track: True}'] * n_samples
+    }
+    return metadata
 
 def generate_hardware_record_stage():
     ...
@@ -79,11 +106,22 @@ def run():
     try:
         with psycopg2.connect(dbname='postgres', user='root', password='password') as conn:
             with conn.cursor() as cursor:
-                cursor.execute('DROP TABLE cameras;')
+                # --- cameras --- #
+                cursor.execute('DROP TABLE IF EXISTS cameras;')
                 cursor.execute(TABLE_CREATE_COMMANDS[0])
-                insert_commands = format_insert(generate_hardware_stage(), 'cameras')
-                for command in insert_commands:
-                    cursor.execute(command)
+                insert_commands = format_insert(generate_hardware_stage(), 'cameras', n_samples=20)
+                for command in insert_commands: cursor.execute(command)
+
+                # --- models --- #
+                cursor.execute('DROP TABLE IF EXISTS models;')
+                cursor.execute(TABLE_CREATE_COMMANDS[1])
+                insert_commands = format_insert(generate_model_stage(), 'models', n_samples=4)
+                for command in insert_commands: cursor.execute(command)
+
+                # --- event_types --- #
+                cursor.execute('DROP TABLE IF EXISTS event_types')
+                cursor.execute(TABLE_CREATE_COMMANDS[2])
+                
     except (psycopg2.DatabaseError, Exception) as error:
         print(error)
 
