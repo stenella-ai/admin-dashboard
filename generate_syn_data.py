@@ -30,10 +30,52 @@ TABLE_CREATE_COMMANDS = [
     """,
     """
     CREATE TABLE IF NOT EXISTS event_types (
-        pk_e_id SERIAL PRIMARY KEY,
-        pk_m_id SERIAL REFERENCES models(pk_m_id),
+        pk_et_id SERIAL PRIMARY KEY,
+        fk_m_id SERIAL REFERENCES models(pk_m_id),
         event_type VARCHAR(255) NOT NULL,
         severity INTEGER
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS hardware_records (
+        pk_hr_id SERIAL PRIMARY KEY,
+        fk_c_id SERIAL REFERENCES cameras(pk_c_id),
+        fk_m_id SERIAL REFERENCES models(pk_m_id),
+        date TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (current_timestamp AT TIME ZONE 'UTC')
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS events (
+        pk_e_id SERIAL PRIMARY KEY,
+        fk_c_id SERIAL REFERENCES cameras(pk_c_id),
+        fk_et_id SERIAL REFERENCES event_types(pk_et_id),
+        date TIMESTAMP NOT NULL,
+        image BYTEA NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS auth (
+        pk_a_id SERIAL PRIMARY KEY,
+        first_name VARCHAR(255) NOT NULL,
+        last_name VARCHAR(255) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone_number VARCHAR(10)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS task_types (
+        pk_t_id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description VARCHAR(4000)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS auth_records (
+        pk_ar_id SERIAL PRIMARY KEY,
+        task_type SERIAL REFERENCES task_types(pk_t_id) NOT NULL,
+        date TIMESTAMP NOT NULL,
+        pk_a_id SERIAL REFERENCES auth(pk_a_id) NOT NULL
     )
     """
 ]
@@ -107,20 +149,40 @@ def run():
         with psycopg2.connect(dbname='postgres', user='root', password='password') as conn:
             with conn.cursor() as cursor:
                 # --- cameras --- #
-                cursor.execute('DROP TABLE IF EXISTS cameras;')
+                cursor.execute('DROP TABLE IF EXISTS cameras CASCADE;')
                 cursor.execute(TABLE_CREATE_COMMANDS[0])
                 insert_commands = format_insert(generate_hardware_stage(), 'cameras', n_samples=20)
                 for command in insert_commands: cursor.execute(command)
 
                 # --- models --- #
-                cursor.execute('DROP TABLE IF EXISTS models;')
+                cursor.execute('DROP TABLE IF EXISTS models CASCADE;')
                 cursor.execute(TABLE_CREATE_COMMANDS[1])
                 insert_commands = format_insert(generate_model_stage(), 'models', n_samples=4)
                 for command in insert_commands: cursor.execute(command)
 
                 # --- event_types --- #
-                cursor.execute('DROP TABLE IF EXISTS event_types')
+                cursor.execute('DROP TABLE IF EXISTS event_types CASCADE')
                 cursor.execute(TABLE_CREATE_COMMANDS[2])
+
+                # --- hardware_records --- #
+                cursor.execute('DROP TABLE IF EXISTS hardware_records CASCADE')
+                cursor.execute(TABLE_CREATE_COMMANDS[3])
+
+                # --- events --- #
+                cursor.execute('DROP TABLE IF EXISTS events CASCADE')
+                cursor.execute(TABLE_CREATE_COMMANDS[4])
+
+                # --- auth --- #
+                cursor.execute('DROP TABLE IF EXISTS auth CASCADE')
+                cursor.execute(TABLE_CREATE_COMMANDS[5])
+
+                # --- task_types --- #
+                cursor.execute('DROP TABLE IF EXISTS task_types CASCADE')
+                cursor.execute(TABLE_CREATE_COMMANDS[6])
+
+                # --- auth_records --- #
+                cursor.execute('DROP TABLE IF EXISTS auth_records CASCADE')
+                cursor.execute(TABLE_CREATE_COMMANDS[7])
                 
     except (psycopg2.DatabaseError, Exception) as error:
         print(error)
