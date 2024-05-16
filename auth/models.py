@@ -21,6 +21,7 @@ class User(UserMixin, current_app.login_database.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
+
 @current_app.login.user_loader
 def load_user(id):
     return current_app.login_database.session.get(User, int(id))
